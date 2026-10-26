@@ -39,9 +39,20 @@ async function runTask(taskId) {
     // A company that is allowed to create bills must also be able to check duplicates
     // and read the bill back for verification; otherwise the planner loops on a
     // registered tool that the stale enabledTools list incorrectly rejects.
-    const enabledTools = company.enabledTools?.length
+  const enabledTools = company.enabledTools?.length
   ? [...company.enabledTools]
   : Object.keys(tools);
+
+const toolAliases = {
+  create_finance_record: 'erp_create_bill',
+  get_finance_record: 'erp_get_bill'
+};
+
+for (const [oldName, newName] of Object.entries(toolAliases)) {
+  if (enabledTools.includes(oldName) && tools[newName] && !enabledTools.includes(newName)) {
+    enabledTools.push(newName);
+  }
+}
 
 for (const requiredTool of ['erp_find_bill', 'erp_get_bill']) {
   if (tools[requiredTool] && !enabledTools.includes(requiredTool)) {
