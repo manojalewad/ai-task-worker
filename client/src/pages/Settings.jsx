@@ -1,0 +1,12 @@
+import React from 'react';
+import { Bot, ShieldCheck, Wrench } from 'lucide-react';
+import { api } from '../lib/api';
+import { Badge } from '../components/ui';
+export default function Settings({ policies, agent, role, reload, setNotice }) {
+  const toggle = async (p) => { try { await api('/company/policies', { method: 'PUT', body: JSON.stringify({ key: p.key, value: !p.value }) }); reload(); setNotice({ type: 'success', text: `${p.value ? 'Disabled' : 'Enabled'}: ${p.key}` }); } catch (e) { setNotice({ type: 'error', text: e.message }); } };
+  return <><div className="page-heading"><div><div className="eyebrow">CONTROL</div><h1>Policies &amp; agent</h1><p>Decide what the worker may do alone, and see how it is running.</p></div></div>
+    <div className="settings-grid"><div className="table-card pad"><h3><ShieldCheck size={16} /> Approval policies</h3>{(policies || []).map((p) => <div className="policy-row" key={p.key}><div><strong>{p.key}</strong><p>{p.description}</p></div><button className={`switch ${p.value ? 'on' : ''}`} disabled={role !== 'admin'} onClick={() => toggle(p)} aria-pressed={p.value}><i /></button></div>)}{role !== 'admin' && <p className="muted-small">Only administrators can change policies.</p>}<p className="muted-small">Turn on “finance write” approval and run a register task to watch it pause, then resume after approval.</p></div>
+      <div className="table-card pad"><h3><Bot size={16} /> How the worker is running</h3><p><Badge tone={agent?.planner?.mode === 'llm' ? 'purple' : 'neutral'}>{agent?.planner?.mode === 'llm' ? `AI planner · ${agent.planner.model}` : 'Rules planner (no GEMINI_API_KEY)'}</Badge> <Badge>{`storage: ${agent?.storage || '—'}`}</Badge>{agent?.erpChaos > 0 && <Badge tone="orange">{`finance outage rate ${agent.erpChaos * 100}%`}</Badge>}</p>
+        <p className="muted-small">With an AI key the model picks each next action; if it errors or misbehaves the worker transparently continues with the deterministic planner. Verification and permissions are enforced by the runtime either way.</p>
+        <h3 style={{ marginTop: 18 }}><Wrench size={16} /> Tools it may use</h3>{(agent?.tools || []).map((t) => <div className="tool-row" key={t.name}><code>{t.name}</code><Badge tone={t.risk === 'read' ? 'green' : t.risk === 'write' ? 'orange' : 'red'}>{t.risk}</Badge>{t.approvalPolicy && <Badge tone="purple">approval-capable</Badge>}<p>{t.description}</p></div>)}</div></div></>;
+}

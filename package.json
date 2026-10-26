@@ -1,0 +1,44 @@
+{
+  "name": "company-ai-worker",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Company-aware autonomous task worker prototype",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "concurrently -k \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "nodemon server/src/server.js",
+    "dev:client": "npm --prefix client run dev",
+    "build": "npm --prefix client install && npm --prefix client run build",
+    "start": "node server/src/server.js",
+    "seed": "node server/scripts/seed.js",
+    "eval": "node server/scripts/eval.js",
+    "test": "node --test server/tests/agent.test.js",
+    "check": "node --check server/src/server.js",
+    "samples": "node server/scripts/samples.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.5.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.9.5",
+    "multer": "^1.4.5-lts.1",
+    "pdf-parse": "1.1.1",
+    "pdfkit": "^0.15.2",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "nodemon": "^3.1.9"
+  },
+  "optionalDependencies": {
+    "mongodb-memory-server": "^10.1.4"
+  }
+}
