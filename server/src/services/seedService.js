@@ -26,7 +26,16 @@ async function seed({ password = process.env.DEMO_PASSWORD || 'DemoPass123!', wi
   for (const spec of specs()) {
     let company = await Company.findOne({ slug: spec.slug });
     if (!company) company = await Company.create({ name: spec.name, slug: spec.slug, description: 'Demo tenant for the Company AI Worker.' });
-    else if (!company.enabledTools?.includes('erp_create_bill')) { company.enabledTools = undefined; await company.save(); } // migrate old tool names
+    else {
+      // Migrate stale tool lists without resetting unrelated company settings.
+      if (!company.enabledTools?.includes('erp_create_bill')) company.enabledTools = undefined; // migrate old tool names
+      else {
+        const enabled = [...(company.enabledTools || [])];
+        for (const requiredTool of ['erp_find_bill', 'erp_get_bill']) if (!enabled.includes(requiredTool)) enabled.push(requiredTool);
+        company.enabledTools = enabled;
+      }
+      await company.save();
+    }
     let user = await User.findOne({ email: spec.email });
     if (!user) user = await User.create({ name: `${spec.name} Admin`, email: spec.email, passwordHash, memberships: [{ companyId: company._id, role: 'admin' }] });
     else { user.passwordHash = passwordHash; user.memberships = [{ companyId: company._id, role: 'admin' }]; await user.save(); }

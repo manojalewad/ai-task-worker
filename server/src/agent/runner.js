@@ -35,7 +35,17 @@ async function runTask(taskId) {
     if (policies.requireApprovalForFinanceWrite === undefined) policies.requireApprovalForFinanceWrite = Boolean(company.policy?.requireApprovalForFinanceWrite);
     const [supplierNames, employees] = await Promise.all([Document.distinct('extractedFields.supplier', { companyId: task.companyId }), Employee.find({ companyId: task.companyId, active: true }).select('name workEmail').lean()]);
     state.facts.knownSuppliers = Object.fromEntries(supplierNames.filter(Boolean).map(s => [s, 1]));
-    const ctx = { companyId: task.companyId, userId: task.userId, taskId: String(task._id), role: membership.role, enabledTools: company.enabledTools?.length ? company.enabledTools : Object.keys(tools), policies, companyName: company.name, request: task.request, attachedDocumentId: task.attachedDocumentId ? String(task.attachedDocumentId) : null, messages: task.messages, approved: false };
+    // Keep finance registration safe for companies with an older persisted tool list.
+    // A company that is allowed to create bills must also be able to check duplicates
+    // and read the bill back for verification; otherwise the planner loops on a
+    // registered tool that the stale enabledTools list incorrectly rejects.
+    const enabledTools = company.enabledTools?.length ? [...company.enabledTools] : Object.keys(tools);
+    if (enabledTools.includes('erp_create_bill')) {
+      for (const requiredTool of ['erp_find_bill', 'erp_get_bill']) {
+        if (tools[requiredTool] && !enabledTools.includes(requiredTool)) enabledTools.push(requiredTool);
+      }
+    }
+    const ctx = { companyId: task.companyId, userId: task.userId, taskId: String(task._id), role: membership.role, enabledTools, policies, companyName: company.name, request: task.request, attachedDocumentId: task.attachedDocumentId ? String(task.attachedDocumentId) : null, messages: task.messages, approved: false };
     const parse = () => parseRequest(`${task.request} ${state.extraText || ''}`, { suppliers: Object.keys(state.facts.knownSuppliers), employees });
     state.runs += 1; let parsed = parse(); task.intent = parsed.kind;
     if (state.runs === 1) { await log('route', 'success', `Understood as “${parsed.kind}”${parsed.supplier ? ` · supplier: ${parsed.supplier}` : ''}${parsed.invoiceNumber ? ` · invoice: ${parsed.invoiceNumber}` : ''}${parsed.latest ? ' · latest' : ''}${parsed.notify ? ` · notify ${parsed.notify.name || parsed.notify.email}` : ''}.`); }
