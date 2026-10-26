@@ -45,6 +45,12 @@ async function runTask(taskId) {
         if (tools[requiredTool] && !enabledTools.includes(requiredTool)) enabledTools.push(requiredTool);
       }
     }
+    console.log('Tool diagnostic:', {
+  enabledTools,
+  findBillRegistered: Boolean(tools.erp_find_bill),
+  createBillRegistered: Boolean(tools.erp_create_bill),
+  getBillRegistered: Boolean(tools.erp_get_bill)
+});
     const ctx = { companyId: task.companyId, userId: task.userId, taskId: String(task._id), role: membership.role, enabledTools, policies, companyName: company.name, request: task.request, attachedDocumentId: task.attachedDocumentId ? String(task.attachedDocumentId) : null, messages: task.messages, approved: false };
     const parse = () => parseRequest(`${task.request} ${state.extraText || ''}`, { suppliers: Object.keys(state.facts.knownSuppliers), employees });
     state.runs += 1; let parsed = parse(); task.intent = parsed.kind;
